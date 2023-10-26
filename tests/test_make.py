@@ -58,6 +58,19 @@ from .utils import simple_attr
 attrs_st = simple_attrs.map(lambda c: Attribute.from_counting_attr("name", c))
 
 
+@pytest.fixture(name="with_and_without_validation", params=[True, False])
+def _with_and_without_validation(request):
+    """
+    Run tests with and without validation enabled.
+    """
+    attr.validators.set_disabled(request.param)
+
+    try:
+        yield
+    finally:
+        attr.validators.set_disabled(False)
+
+
 class TestCountingAttr:
     """
     Tests for `attr`.
@@ -612,12 +625,11 @@ class TestAttributes:
         assert C.D.__name__ == "D"
         assert C.D.__qualname__ == C.__qualname__ + ".D"
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_pre_init(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init(self):
         """
         Verify that __attrs_pre_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
         class C:
@@ -628,12 +640,65 @@ class TestAttributes:
 
         assert 30 == getattr(c, "z", None)
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_post_init(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_args(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra args if defined.
+        """
+
+        @attr.s
+        class C:
+            x = attr.ib()
+
+            def __attrs_pre_init__(self2, x):
+                self2.z = x + 1
+
+        c = C(x=10)
+
+        assert 11 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_kwargs(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra args and kwargs
+        if defined.
+        """
+
+        @attr.s
+        class C:
+            x = attr.ib()
+            y = attr.field(kw_only=True)
+
+            def __attrs_pre_init__(self2, x, y):
+                self2.z = x + y + 1
+
+        c = C(10, y=11)
+
+        assert 22 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_kwargs_only(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra kwargs only if
+        defined.
+        """
+
+        @attr.s
+        class C:
+            y = attr.field(kw_only=True)
+
+            def __attrs_pre_init__(self2, y):
+                self2.z = y + 1
+
+        c = C(y=11)
+
+        assert 12 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_post_init(self):
         """
         Verify that __attrs_post_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
         class C:
@@ -647,12 +712,11 @@ class TestAttributes:
 
         assert 30 == getattr(c, "z", None)
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_pre_post_init_order(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_post_init_order(self):
         """
         Verify that __attrs_post_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
         class C:

@@ -41,8 +41,7 @@ tests-no-zope = [
   "hypothesis",
   "pympler",
   # 4.3.0 dropped last use of `convert`
-  # 8.0 broke something around warnings/exceptions
-  "pytest>=4.3.0,<8.0",
+  "pytest>=4.3.0",
   "pytest-xdist[psutil]",
   "attrs[tests-mypy]",
 ]
@@ -165,7 +164,7 @@ toplevel = ["attr", "attrs"]
 [tool.ruff]
 src = ["src", "tests", "conftest.py", "docs"]
 
-[tool.lint.ruff]
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
   "A001",    # shadowing is fine
